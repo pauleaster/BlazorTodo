@@ -2,6 +2,7 @@
 @using System.Text.Json
 @using System.Text.Json.Serialization
 @inject IHttpClientFactory ClientFactory
+@using System.Text.RegularExpressions;
 
 <h1>Call web API from a Blazor Server Razor component</h1>
 
@@ -14,23 +15,43 @@ else
     <ul>
         @foreach (var branch in branches)
         {
-            <li>@branch.Name</li>
+            <li>@branch.Name - @branch.Url</li>
         }
     </ul>
 }
+
+<p role="status">Current string count: @selectString</p>
+
+<button class="btn btn-primary" @onclick="ChangeTargetRepo">Change repository target</button>
 
 @code {
     private IEnumerable<GitHubBranch>? branches = Array.Empty<GitHubBranch>();
     private bool getBranchesError;
     private bool shouldRender;
+    private const int NUMSTRINGS = 3;
+    private const int MAXBRANCHES = 6;
+    private string[] arrayOfReferences = new string[NUMSTRINGS];
     private string blazorTodoBranches = "https://api.github.com/repos/pauleaster/BlazorTodo/branches";
     private string aspNetCoreBranches = "https://api.github.com/repos/dotnet/AspNetCore.Docs/branches";
+    private string rnsBranches = "https://api.github.com/repos/pauleaster/rns.rs/branches";
+    private string pattern = @"(.*)(/commits/)(.*)";
+
+    private static int selectString = 0;
+
 
     protected override bool ShouldRender() => shouldRender;
 
     protected override async Task OnInitializedAsync()
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, aspNetCoreBranches);
+        await UpdateBranchesAsync();
+    }
+
+    protected async Task UpdateBranchesAsync()
+    {
+        arrayOfReferences[0] = blazorTodoBranches;
+        arrayOfReferences[1] = aspNetCoreBranches;
+        arrayOfReferences[2] = rnsBranches;
+        var request = new HttpRequestMessage(HttpMethod.Get, arrayOfReferences[selectString]);
         request.Headers.Add("Accept", "application/vnd.github.v3+json");
         request.Headers.Add("User-Agent", "HttpClientFactory-Sample");
 
@@ -40,9 +61,29 @@ else
 
         if (response.IsSuccessStatusCode)
         {
-            using var responseStream = await response.Content.ReadAsStreamAsync();
-            branches = await JsonSerializer.DeserializeAsync
-                <IEnumerable<GitHubBranch>>(responseStream);
+            var options = new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                };
+
+            var contentStream = await response.Content.ReadAsStreamAsync();
+            using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
+            var rootElement = jsonDocument.RootElement;
+            var branchList = new List<GitHubBranch>();
+
+            foreach (var branchElement in rootElement.EnumerateArray().Take(MAXBRANCHES))
+            {
+                var longurl = branchElement.GetProperty("commit").GetProperty("url").GetString();
+
+                var branch = new GitHubBranch
+                    {
+                        Name = branchElement.GetProperty("name").GetString(),
+                        Url =  Regex.Replace(longurl, pattern, "$1") ,
+                };
+                branchList.Add(branch);
+            }
+
+            branches = branchList;
         }
         else
         {
@@ -52,9 +93,18 @@ else
         shouldRender = true;
     }
 
+
+
     public class GitHubBranch
     {
-        [JsonPropertyName("name")]
         public string? Name { get; set; }
+        public string? Url { get; set; }
+    }
+
+    private async void ChangeTargetRepo()
+    {
+        selectString = (selectString + 1) % NUMSTRINGS;
+        await UpdateBranchesAsync();
+        StateHasChanged();
     }
 }
