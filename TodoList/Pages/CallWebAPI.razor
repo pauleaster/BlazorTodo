@@ -23,8 +23,8 @@ else
     private IEnumerable<GitHubBranch>? branches = Array.Empty<GitHubBranch>();
     private bool getBranchesError;
     private bool shouldRender;
-    private string blazorTodoBranches = https://api.github.com/repos/pauleaster/BlazorTodo/branches;
-    private string aspNetCoreBranches = https://api.github.com/repos/dotnet/AspNetCore.Docs/branches;
+    private string blazorTodoBranches = "https://api.github.com/repos/pauleaster/BlazorTodo/branches";
+    private string aspNetCoreBranches = "https://api.github.com/repos/dotnet/AspNetCore.Docs/branches";
 
     protected override bool ShouldRender() => shouldRender;
 
