@@ -1,18 +1,43 @@
 ﻿@page "/counter"
-
+@using System;
 <PageTitle>Counter</PageTitle>
 
 <h1>Counter</h1>
 
-<p role="status">Current count: @currentCount</p>
+<p role="status">Current count: @currentCount, Current increment: @currentIncrement</p>
 
-<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+<div class="form-group">
+    <label for="incrementList">Select Increment:</label>
+    <select class="form-control" id="incrementList" @bind="currentIncrement">
+        @for (int i = 1; i <= MAXINCREMENT; i++)
+        {
+            <option value="@i">@i</option>
+        }
+    </select>
+</div>
+<br />
+<button class="btn btn-primary" @onclick="IncrementCount">Increment</button>
+<br />
+<br />
+<button class="btn btn-primary" @onclick="ResetCount">Clear Count</button>
 
 @code {
+    private const int MAXINCREMENT = 10;
+    private const int MAXCOUNT = 100;
     private int currentCount = 0;
+    private int currentIncrement = 1;
 
     private void IncrementCount()
     {
-        currentCount++;
+        currentCount = (currentCount + currentIncrement);
+        if (currentCount >= MAXCOUNT)
+        {
+            currentCount = 0;
+        }
+    }
+
+    private void ResetCount()
+    {
+        currentCount = 0;
     }
 }

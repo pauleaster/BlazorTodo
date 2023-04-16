@@ -70,15 +70,25 @@ else
             using var jsonDocument = await JsonDocument.ParseAsync(contentStream);
             var rootElement = jsonDocument.RootElement;
             var branchList = new List<GitHubBranch>();
+            string? url;
 
             foreach (var branchElement in rootElement.EnumerateArray().Take(MAXBRANCHES))
             {
-                var longurl = branchElement.GetProperty("commit").GetProperty("url").GetString();
+                string? longurl = branchElement.GetProperty("commit").GetProperty("url").GetString();
+                if (null != longurl)
+                {
+                    url = Regex.Replace(longurl, pattern, "$1");
+                }
+                else
+                {
+                    url = null;
+                }
 
                 var branch = new GitHubBranch
                     {
                         Name = branchElement.GetProperty("name").GetString(),
-                        Url =  Regex.Replace(longurl, pattern, "$1") ,
+                        
+                        Url = url ,
                 };
                 branchList.Add(branch);
             }
